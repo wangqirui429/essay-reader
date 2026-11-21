@@ -1,0 +1,748 @@
+/* ============================================================
+   Essay Reader — reading-first interface
+   Every label in this app is English. Chinese glyphs appear only
+   inside a pinned meaning card (.card__zh and friends).
+   ============================================================ */
+
+:root {
+  --para-size: 20px;
+  --measure: 46rem;
+
+  --bg: #f6f1e6;
+  --bg-soft: #efe8d9;
+  --ink: #23201a;
+  --ink-soft: #6a6256;
+  --ink-faint: #9a9082;
+  --line: #d8cfbc;
+  --accent: #9a3b1f;
+  --accent-soft: #f2ddd0;
+  --card-bg: #fffdf7;
+  --card-line: #e3d9c6;
+  --card-shadow: 0 12px 34px rgba(41, 32, 16, .18), 0 2px 6px rgba(41, 32, 16, .12);
+  --zh-color: #0f5c4a;
+
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+html[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-soft: #f4f5f7;
+  --ink: #1c1e21;
+  --ink-soft: #5a6069;
+  --ink-faint: #98a0aa;
+  --line: #e3e6ea;
+  --accent: #1d4ed8;
+  --accent-soft: #e4ecff;
+  --card-bg: #ffffff;
+  --card-line: #dde2e9;
+  --card-shadow: 0 14px 34px rgba(20, 30, 60, .16), 0 2px 6px rgba(20, 30, 60, .1);
+  --zh-color: #14503c;
+}
+
+html[data-theme="dark"] {
+  --bg: #14161a;
+  --bg-soft: #1b1e24;
+  --ink: #e6e8ea;
+  --ink-soft: #a7adb8;
+  --ink-faint: #757c88;
+  --line: #2b3038;
+  --accent: #eaa64c;
+  --accent-soft: #3a2f1d;
+  --card-bg: #1e2228;
+  --card-line: #333945;
+  --card-shadow: 0 16px 40px rgba(0, 0, 0, .55), 0 2px 8px rgba(0, 0, 0, .4);
+  --zh-color: #7fd6ae;
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+/*
+ * The `hidden` attribute must actually hide.
+ *
+ * Browsers ship `[hidden] { display: none }` in the user-agent stylesheet, which
+ * any author rule of equal specificity overrides — and this file sets
+ * `.auth { display: block }`. The result on the live site was a "sync is not
+ * configured" note sitting above a full sign-in form and sign-out buttons that
+ * could not work. `!important` is the correct tool here: it restores the
+ * attribute's meaning rather than competing with the layout rules.
+ */
+[hidden] { display: none !important; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+  min-height: 100vh;
+}
+
+/* --------------------------------------------------------------- top bar  */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .6rem clamp(1rem, 4vw, 2.5rem);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: .45rem;
+  text-decoration: none;
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+
+.brand__mark { color: var(--accent); font-size: 1.25rem; line-height: 1; }
+
+.nav { display: flex; gap: .15rem; margin-left: auto; }
+
+.nav a {
+  padding: .42rem .8rem;
+  border-radius: 8px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: .92rem;
+}
+
+.nav a:hover { background: var(--bg-soft); color: var(--ink); }
+
+.nav a.is-active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+
+.pill {
+  font-size: .78rem;
+  padding: .25rem .6rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------------- layout */
+
+#main { padding: clamp(1rem, 4vw, 2.6rem) clamp(1rem, 5vw, 2.5rem) 6rem; }
+
+.view { max-width: 62rem; margin: 0 auto; }
+
+.view__title { font-size: 1.7rem; margin: 0 0 .3rem; letter-spacing: -.01em; }
+
+.view__lede { color: var(--ink-soft); margin: 0 0 1.6rem; max-width: 44rem; }
+
+.section__title {
+  font-size: 1.02rem;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--ink-faint);
+  margin: 2rem 0 .8rem;
+  font-weight: 600;
+}
+
+.section__count { text-transform: none; letter-spacing: 0; color: var(--ink-faint); }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------ home / hero */
+
+.hero { max-width: 44rem; }
+
+.hero__title {
+  font-size: clamp(1.6rem, 4.6vw, 2.4rem);
+  line-height: 1.18;
+  letter-spacing: -.02em;
+  margin: 1.2rem 0 .6rem;
+}
+
+.hero__sub { color: var(--ink-soft); font-size: 1.02rem; margin: 0 0 1rem; }
+
+/* ------------------------------------------------------------- import box */
+
+.import {
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1.2rem 1.3rem 1.3rem;
+}
+
+.import .section__title { margin-top: 0; }
+
+.field { display: block; margin-bottom: .9rem; }
+
+.field--title { max-width: 26rem; }
+
+.field__label {
+  display: block;
+  font-size: .82rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: .35rem;
+}
+
+.field__hint, .field__required { font-weight: 500; text-transform: none; letter-spacing: 0; }
+
+.field__required { color: var(--accent); }
+
+input[type="text"], input[type="search"], textarea {
+  width: 100%;
+  font: inherit;
+  color: var(--ink);
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: .6rem .75rem;
+}
+
+textarea {
+  font-family: var(--mono);
+  font-size: .88rem;
+  line-height: 1.65;
+  resize: vertical;
+  min-height: 8rem;
+}
+
+input:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible, .w:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.import__actions { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; }
+
+.import__status { color: var(--accent); font-size: .88rem; }
+
+/* ------------------------------------------------------------------ shelf */
+
+.shelf__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+  gap: 1rem;
+}
+
+.shelf__empty { color: var(--ink-faint); grid-column: 1 / -1; }
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: .95rem 1rem 1rem;
+}
+
+.tile__title { margin: 0; font-size: 1.02rem; line-height: 1.3; }
+
+.tile__meta { margin: 0; font-size: .78rem; color: var(--ink-faint); }
+
+.tile__excerpt {
+  margin: .2rem 0 .6rem;
+  font-size: .88rem;
+  color: var(--ink-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tile__foot { display: flex; align-items: center; gap: .4rem; margin-top: auto; flex-wrap: wrap; }
+
+.tile__date { margin-left: auto; font-size: .75rem; color: var(--ink-faint); }
+
+.dropzone {
+  margin-top: 1.1rem;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: .7rem;
+  text-align: center;
+  color: var(--ink-faint);
+  font-size: .85rem;
+}
+
+.dropzone--over { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+/* ----------------------------------------------------------------- reader */
+
+.view--reader { max-width: none; }
+
+.reader__bar {
+  max-width: 62rem;
+  margin: 0 auto .4rem;
+  display: flex;
+  align-items: flex-start;
+  gap: .9rem;
+}
+
+/* Chinese labels are wider per character than English words, so the small
+   buttons must not wrap mid-label on a phone. */
+.reader__bar .btn,
+.reader__baractions .btn {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.reader__barinfo { min-width: 0; flex: 1 1 auto; }
+
+.reader__title { margin: 0; font-size: 1.25rem; letter-spacing: -.01em; }
+
+.reader__meta { margin: .15rem 0 0; font-size: .8rem; color: var(--ink-faint); }
+
+/* Keep the meta line's parts from breaking in the middle: a Chinese date reads
+   "2026年11月19日" and splitting it after the year looks like a typo. */
+.reader__meta { word-break: keep-all; overflow-wrap: anywhere; }
+
+.reader__baractions { margin-left: auto; display: flex; gap: .4rem; }
+
+.reader__toolbar {
+  position: sticky;
+  top: 3.1rem;
+  z-index: 50;
+  max-width: var(--measure);
+  margin: .6rem auto 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  flex-wrap: wrap;
+  padding: .45rem .7rem;
+  background: color-mix(in srgb, var(--bg-soft) 92%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: .82rem;
+  color: var(--ink-soft);
+}
+
+.tool-label { font-weight: 600; color: var(--ink-soft); }
+.tool-sep { width: 1px; height: 1.1rem; background: var(--line); }
+.tool-hint { color: var(--ink-faint); }
+
+.reader {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding-bottom: 2rem;
+}
+
+.reader .para {
+  font-family: var(--serif);
+  font-size: var(--para-size);
+  line-height: 1.85;
+  margin: 0 0 1.15em;
+  text-align: justify;
+  hyphens: auto;
+  color: var(--ink);
+}
+
+/* words ----------------------------------------------------------------- */
+
+/*
+ * Touch behaviour on the reading surface.
+ *
+ * `touch-action: manipulation` tells the browser a tap is not the beginning of
+ * a double-tap zoom, so it can dispatch the click immediately instead of
+ * holding it for ~300 ms. Without it the first tap often feels ignored and the
+ * reader taps again — and that second tap toggles the card back shut, which
+ * looks exactly like "the tap did nothing".
+ */
+.w {
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+  border-radius: 3px;
+  padding: 0 .5px;
+  transition: background-color .12s ease, color .12s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  /* A word is a tap target, not selectable text: suppressing selection stops
+     the long-press / double-tap selection UI from stealing the gesture. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.reader__body { touch-action: manipulation; }
+
+.w:hover { background: var(--accent-soft); }
+
+/* On touch devices, pad the tap area vertically without changing the type:
+   a 28px-tall word is fine to aim at, a 44px one is comfortable. */
+@media (hover: none) and (pointer: coarse) {
+  .w { padding: .35em .5px; }
+}
+
+.w--seen { border-bottom-color: color-mix(in srgb, var(--ink-faint) 60%, transparent); }
+
+.w--open {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
+}
+
+/* ------------------------------------------------------- pinned cards --- */
+
+/*
+ * The card layer sits ABOVE the sticky bars (top bar z=60, toolbar z=50). A
+ * card sliding a little way under a sticky bar used to put its ✕ out of reach:
+ * the reader tapped the ✕ and actually hit the toolbar, so the close button
+ * appeared dead. Cards are pinned meanings the user asked for — they outrank
+ * navigation chrome.
+ */
+.card-layer { position: absolute; inset: 0; pointer-events: none; z-index: 70; }
+
+.card {
+  position: absolute;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  width: min(21rem, calc(100vw - 1.4rem));
+  /* Size follows the content: a two-sense word gets a small card, a ten-sense
+     word gets a tall one. The cap keeps any card scrollable on a phone. */
+  max-height: min(24rem, 70vh);
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: var(--card-bg);
+  border: 1px solid var(--card-line);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  padding: .7rem .85rem .8rem;
+  font-size: .88rem;
+  animation: cardIn .16s ease-out;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(-4px) scale(.985); }
+  to { opacity: 1; transform: none; }
+}
+
+.card--flash { animation: cardFlash .45s ease-out; }
+
+@keyframes cardFlash {
+  0% { box-shadow: var(--card-shadow), 0 0 0 3px var(--accent-soft); }
+  100% { box-shadow: var(--card-shadow), 0 0 0 0 transparent; }
+}
+
+.card__head { display: flex; align-items: center; gap: .45rem; flex: none; }
+
+.card__word {
+  font-size: 1.12rem;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.card__ipa { color: var(--ink-faint); font-family: var(--mono); font-size: .8rem; }
+
+.card__spacer { flex: 1; }
+
+.card__speak, .card__close {
+  font: inherit;
+  border: 1px solid var(--card-line);
+  background: transparent;
+  color: var(--ink-soft);
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: none;
+  border-radius: 9px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  touch-action: manipulation;
+}
+
+/*
+ * The close button is the one control a reader reaches for while a card is in
+ * the way, so it gets a generous target and sits at the card's leading edge
+ * rather than the trailing one. That keeps it out of the path a finger takes
+ * from the word it just tapped, which is usually near the card's middle.
+ */
+.card__close {
+  width: 2.9rem;
+  height: 2.9rem;
+  font-size: 1.05rem;
+  margin-left: -.15rem;
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--card-line));
+  background: color-mix(in srgb, var(--accent-soft) 55%, transparent);
+}
+
+.card__close:active { background: var(--accent-soft); transform: scale(.94); }
+
+.card__speak { font-size: .95rem; }
+.card__speak:hover, .card__close:hover { background: var(--bg-soft); color: var(--ink); }
+.card__close:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+/* Visible acknowledgement that the 🔊 tap landed, even before audio starts or
+   when the device has no English voice and stays silent. */
+.card__speak--active {
+  background: var(--accent-soft) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  transform: scale(.94);
+}
+
+.card__body { margin-top: .45rem; overflow: auto; overscroll-behavior: contain; min-height: 0; }
+
+.card__loading, .card__empty { color: var(--ink-faint); margin: 0; }
+
+.card__glosses { list-style: none; margin: 0; padding: 0; }
+
+.card__glosses li {
+  padding: .3rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--card-line) 60%, transparent);
+  line-height: 1.55;
+}
+
+.card__glosses li:first-child { border-top: 0; }
+
+.card__pos {
+  font-family: var(--mono);
+  font-size: .74rem;
+  color: var(--accent);
+  margin-right: .4rem;
+  background: var(--accent-soft);
+  padding: .05rem .3rem;
+  border-radius: 5px;
+}
+
+/* Chinese meaning text — the only place Chinese is rendered */
+.card__zh { color: var(--zh-color); font-weight: 500; }
+
+.card__block { margin-top: .6rem; padding-top: .5rem; border-top: 1px solid var(--card-line); }
+
+.card__block h4 {
+  margin: 0 0 .3rem;
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ink-faint);
+  font-weight: 700;
+}
+
+.card__line { margin: .15rem 0; font-size: .85rem; }
+.card__line b { font-weight: 600; }
+
+.card__ex { margin: .3rem 0; font-size: .84rem; font-style: italic; color: var(--ink-soft); }
+.card__ex--zh { font-style: normal; color: var(--zh-color); font-size: .83rem; }
+
+.card__tags { margin: .5rem 0 0; }
+.card__tags i {
+  font-style: normal;
+  font-size: .72rem;
+  background: var(--bg-soft);
+  border: 1px solid var(--card-line);
+  border-radius: 6px;
+  padding: .05rem .35rem;
+  margin-right: .25rem;
+}
+
+.card__note { margin: .55rem 0 0; font-size: .76rem; color: var(--ink-faint); }
+
+.card--free { border-style: dashed; }
+
+/* --------------------------------------------------------------- words list */
+
+.words__bar { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-bottom: 1rem; }
+
+.words__search { flex: 1 1 16rem; max-width: 24rem; }
+
+.words__count { font-size: .82rem; color: var(--ink-faint); margin-right: auto; }
+
+.wordlist { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+
+.wrow {
+  display: flex;
+  align-items: flex-start;
+  gap: .8rem;
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: .7rem .85rem;
+}
+
+.wrow__main { min-width: 0; }
+
+.wrow__head { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+
+.wrow__word { font-size: 1.02rem; }
+.wrow__ipa { font-family: var(--mono); font-size: .78rem; color: var(--ink-faint); }
+.wrow__hits { font-size: .74rem; color: var(--ink-faint); margin-left: auto; }
+.wrow__zh { margin: .2rem 0 .1rem; color: var(--zh-color); font-size: .9rem; }
+.wrow__time { margin: 0; font-size: .72rem; color: var(--ink-faint); }
+.wrow__pos { font-family: var(--mono); font-size: .74rem; color: var(--accent); margin-right: .25rem; }
+
+.wrow__actions { display: flex; gap: .3rem; align-items: center; margin-left: auto; }
+
+/* ------------------------------------------------------------------ setup */
+
+.set-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1rem; }
+
+.set-card {
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1rem 1.1rem 1.2rem;
+}
+
+.set-card__title { margin: 0 0 .7rem; font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-faint); }
+
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: .8rem; margin: .5rem 0; }
+.set-row--switch { margin-top: .8rem; }
+.set-note { font-size: .84rem; color: var(--ink-soft); margin: .3rem 0; }
+.set-note--ok { color: var(--ok, #2f7a54); }
+.set-note--warn { color: var(--warn, #9a6b12); }
+.set-note--err { color: var(--danger, #b03a2e); }
+.set-actions { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: .7rem; }
+
+/* ---------------------------------------------------------------- account */
+.auth { display: block; }
+.auth .field { margin-bottom: .7rem; }
+.auth input[type="email"],
+.auth input[type="password"] {
+  font: inherit;
+  font-size: .92rem;
+  width: 100%;
+  padding: .5rem .6rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink);
+}
+.auth input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.set-stats { font-family: var(--mono); font-size: .78rem; color: var(--ink-soft); background: var(--bg-soft); border-radius: 8px; padding: .6rem .7rem; overflow: auto; margin: .8rem 0 0; }
+
+.segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+
+.segmented button {
+  font: inherit;
+  font-size: .82rem;
+  padding: .3rem .7rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.segmented button + button { border-left: 1px solid var(--line); }
+.segmented button.is-active { background: var(--accent); color: #fff; }
+
+.switch {
+  width: 2.6rem; height: 1.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+}
+
+.switch__dot {
+  position: absolute;
+  top: 50%; left: .18rem;
+  width: 1.05rem; height: 1.05rem;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  transform: translateY(-50%);
+  transition: left .14s ease, background-color .14s ease;
+}
+
+.switch.is-on { background: var(--accent-soft); border-color: var(--accent); }
+.switch.is-on .switch__dot { left: calc(100% - 1.25rem); background: var(--accent); }
+
+.net { font-size: .82rem; color: var(--ink-soft); }
+.net--bad { color: var(--accent); }
+
+/* ---------------------------------------------------------------- buttons */
+
+.btn {
+  font: inherit;
+  font-size: .9rem;
+  padding: .5rem .95rem;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--card-bg);
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+}
+
+.btn:hover { border-color: var(--ink-faint); }
+
+.btn--primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.btn--primary:hover { filter: brightness(1.06); border-color: var(--accent); }
+
+.btn--ghost { background: transparent; }
+
+.btn--danger { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.btn--danger:hover { background: var(--accent-soft); }
+
+.btn--sm { font-size: .82rem; padding: .34rem .7rem; }
+.btn--xs { font-size: .76rem; padding: .22rem .5rem; }
+
+.empty { color: var(--ink-faint); }
+
+/* ------------------------------------------------------------------ toast */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.3rem;
+  transform: translate(-50%, 1.2rem);
+  background: var(--ink);
+  color: var(--bg);
+  padding: .55rem 1rem;
+  border-radius: 10px;
+  font-size: .87rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+  z-index: 90;
+  max-width: min(30rem, calc(100vw - 2rem));
+}
+
+.toast--show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ------------------------------------------------------------- responsive */
+
+@media (max-width: 700px) {
+  .brand__text { display: none; }
+  .nav a { padding: .4rem .55rem; font-size: .85rem; }
+  .reader__toolbar { font-size: .76rem; }
+  .tool-hint { display: none; }
+  .reader .para { text-align: left; line-height: 1.8; }
+  .card { width: calc(100vw - 1.2rem); }
+  .wrow__actions { flex-direction: column; }
+  .set-grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* On touch screens the dotted "seen" underline is the only affordance, so
+   make looked-up words slightly heavier instead of relying on hover. */
+@media (hover: none) {
+  .w--seen { font-weight: 600; }
+}
