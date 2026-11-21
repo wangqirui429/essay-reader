@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<meta name="description" content="阅读英语文章，点击不认识的单词即可固定显示它的中文释义。" />
+<meta name="theme-color" content="#f6f1e6" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Essay Reader" />
+<title>英语作文阅读器</title>
+<link rel="manifest" href="./manifest.json" />
+<link rel="apple-touch-icon" href="./icons/icon-192.png" />
+<link rel="icon" href="./icons/icon-192.png" />
+<link rel="stylesheet" href="./css/app.css" />
+</head>
+<body data-view="home">
+
+<header class="topbar">
+  <a class="brand" href="#/">
+    <span class="brand__mark" aria-hidden="true">¶</span>
+    <span class="brand__text" data-i18n="app.name">英语作文阅读器</span>
+  </a>
+
+  <nav class="nav" data-i18n-attr="aria-label:nav.main" aria-label="主导航">
+    <a href="#/" data-nav="home" data-i18n="nav.essays">文章</a>
+    <a href="#/words" data-nav="words" data-i18n="nav.words">生词本</a>
+    <a href="#/settings" data-nav="settings" data-i18n="nav.settings">设置</a>
+  </nav>
+
+  <div class="topbar__end">
+    <span class="pill" id="openCount" hidden></span>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ================================================================ home -->
+  <section class="view view--home" data-view-panel="home">
+
+    <div class="hero">
+      <h1 class="hero__title" data-i18n="home.hero">读英语文章，点一下不认识的单词。</h1>
+      <p class="hero__sub" data-i18n="home.heroSub">
+        导入你自己的文章，点任意单词就在它旁边固定显示中文释义。释义会一直留在屏幕上，直到你主动关闭。
+      </p>
+    </div>
+
+    <section class="import" data-i18n-attr="aria-labelledby:home.importTitle">
+      <h2 class="section__title" id="importTitle" data-i18n="home.importTitle">导入文章</h2>
+
+      <div class="import__row">
+        <label class="field field--title">
+          <span class="field__label"><span data-i18n="home.titleLabel">标题</span> <span class="field__hint" data-i18n="home.titleOptional">选填</span></span>
+          <input id="impTitle" type="text" data-i18n-attr="placeholder:home.titlePlaceholder" placeholder="例如：第三单元作文" maxlength="80" autocomplete="off" />
+        </label>
+      </div>
+
+      <label class="field">
+        <span class="field__label"><span data-i18n="home.textLabel">文章内容</span> <span class="field__required" data-i18n="home.textRequired">必填</span></span>
+        <textarea id="impText" rows="9" spellcheck="false"
+          data-i18n-attr="placeholder:home.textPlaceholder"
+          placeholder="把文章粘贴到这里。段落之间空一行。第一行较短时会作为标题。"></textarea>
+      </label>
+
+      <div class="import__actions">
+        <button class="btn btn--primary" id="impSave" type="button" data-i18n="home.read">开始阅读</button>
+        <label class="btn btn--ghost" for="impFile" data-i18n="home.loadFile">从 .txt 文件导入</label>
+        <input class="visually-hidden" id="impFile" type="file" accept=".txt,.md,text/plain" />
+        <button class="btn btn--ghost" id="impSample" type="button" data-i18n="home.loadSample">载入示例文章</button>
+        <span class="import__status" id="impStatus" role="status"></span>
+      </div>
+    </section>
+
+    <section class="shelf">
+      <h2 class="section__title">
+        <span data-i18n="home.myEssays">我的文章</span> <span class="section__count" id="shelfCount"></span>
+      </h2>
+      <div class="shelf__grid" id="shelf"></div>
+      <p class="dropzone" id="dropzone" data-i18n="home.dropzone">把 .txt 文件拖到本页任意位置即可导入。</p>
+    </section>
+  </section>
+
+  <!-- ============================================================== reader -->
+  <section class="view view--reader" data-view-panel="reader">
+    <div class="reader__bar">
+      <a class="btn btn--ghost btn--sm" href="#/" data-i18n="reader.back">‹ 文章列表</a>
+      <div class="reader__barinfo">
+        <h2 id="essayTitle" class="reader__title" data-i18n="reader.untitled">未命名</h2>
+        <p id="essayMeta" class="reader__meta"></p>
+      </div>
+      <div class="reader__baractions">
+        <button class="btn btn--ghost btn--sm" id="btnClearCards" type="button"
+          data-i18n="reader.closeAll" data-i18n-attr="title:reader.closeAllTitle">关闭全部卡片</button>
+      </div>
+    </div>
+
+    <div class="reader__toolbar" role="group" data-i18n-attr="aria-label:reader.controls">
+      <span class="tool-label" data-i18n="reader.textSize">字号</span>
+      <button class="btn btn--ghost btn--xs" id="btnSizeDown" type="button"
+        data-i18n-attr="aria-label:reader.smaller" aria-label="缩小字号">A−</button>
+      <button class="btn btn--ghost btn--xs" id="btnSizeUp" type="button"
+        data-i18n-attr="aria-label:reader.larger" aria-label="放大字号">A+</button>
+      <span class="tool-sep" aria-hidden="true"></span>
+      <span class="tool-label" id="seenLabel"></span>
+      <span class="tool-sep" aria-hidden="true"></span>
+      <span class="tool-hint" data-i18n="reader.hint">点单词查释义；点卡片顶部任意位置即可关闭。</span>
+    </div>
+
+    <article class="reader" id="reader">
+      <div class="reader__body" id="essayBody"></div>
+    </article>
+  </section>
+
+  <!-- ========================================================== saved words -->
+  <section class="view view--words" data-view-panel="words">
+    <h1 class="view__title" data-i18n="words.title">生词本</h1>
+    <p class="view__lede" data-i18n="words.lede">你点过的每个单词都会记在这里，并附上中文释义。</p>
+
+    <div class="words__bar">
+      <input id="wordSearch" class="words__search" type="search"
+        data-i18n-attr="placeholder:words.search" placeholder="按单词或释义搜索" autocomplete="off" />
+      <span class="words__count" id="wordsCount"></span>
+      <button class="btn btn--ghost btn--sm" id="btnWordsCsv" type="button" data-i18n="words.export">导出列表</button>
+      <button class="btn btn--danger btn--sm" id="btnWordsClear" type="button" data-i18n="words.clear">清空</button>
+    </div>
+
+    <ul class="wordlist" id="wordList"></ul>
+    <p class="empty" id="wordsEmpty" hidden></p>
+  </section>
+
+  <!-- ============================================================ settings -->
+  <section class="view view--settings" data-view-panel="settings">
+    <h1 class="view__title" data-i18n="settings.title">设置</h1>
+
+    <div class="set-grid">
+      <section class="set-card">
+        <h2 class="set-card__title" data-i18n="settings.appearance">外观</h2>
+        <div class="set-row">
+          <span data-i18n="settings.tone">页面底色</span>
+          <div class="segmented" id="themeGroup" role="group" data-i18n-attr="aria-label:settings.tone">
+            <button type="button" data-theme="paper" data-i18n="settings.tonePaper">米色</button>
+            <button type="button" data-theme="light" data-i18n="settings.toneLight">白色</button>
+            <button type="button" data-theme="dark" data-i18n="settings.toneDark">深色</button>
+          </div>
+        </div>
+        <div class="set-row">
+          <span data-i18n="settings.textSize">字号</span>
+          <output id="sizeValue">20 px</output>
+        </div>
+        <input type="range" id="sizeRange" min="16" max="26" step="1" data-i18n-attr="aria-label:settings.textSize" />
+        <div class="set-row set-row--switch">
+          <span data-i18n="settings.lineWidth">舒适的行宽</span>
+          <button type="button" class="switch" id="measureSwitch" role="switch" aria-checked="true">
+            <span class="switch__dot" aria-hidden="true"></span>
+          </button>
+        </div>
+      </section>
+
+      <section class="set-card">
+        <h2 class="set-card__title" data-i18n="settings.language">语言</h2>
+        <p class="set-note" data-i18n="settings.languageNote">界面语言。单词释义始终为中文。</p>
+        <div class="segmented" id="langGroup" role="group" data-i18n-attr="aria-label:settings.language">
+          <button type="button" data-lang="zh" data-i18n="settings.langZh">中文</button>
+          <button type="button" data-lang="en" data-i18n="settings.langEn">English</button>
+        </div>
+      </section>
+
+      <section class="set-card">
+        <h2 class="set-card__title" data-i18n="settings.dictionary">词典</h2>
+        <p class="set-note" data-i18n="settings.dictNote">
+          完整的英汉词典内置在应用里，所以每个单词都能离线查询，不需要开电脑。
+        </p>
+        <p class="set-note"><span id="netStatus" class="net" data-i18n="settings.dictLoading">正在载入内置词典…</span></p>
+      </section>
+
+      <section class="set-card">
+        <h2 class="set-card__title" data-i18n="settings.phone">在手机上使用</h2>
+        <p class="set-note" data-i18n="settings.phoneNote">
+          这个应用完全在浏览器里运行。在手机上选择「添加到主屏幕」，之后就能全屏打开，飞行模式下也照常使用。
+        </p>
+        <p class="set-note" id="installState"></p>
+      </section>
+
+      <section class="set-card" id="accountCard">
+        <h2 class="set-card__title" data-i18n="settings.account">账号与同步</h2>
+
+        <!-- Not connected -->
+        <form class="auth" id="authForm" hidden novalidate>
+          <p class="set-note" data-i18n="settings.accountNote">
+            连接之后，你在手机和电脑上看到的文章、生词和阅读进度会保持一致。
+          </p>
+          <p class="set-note" data-i18n="settings.tokenNote">
+            同步使用你自己的 GitHub 账号：内容保存在你账号下的一条私密 Gist 里，不经过任何第三方服务器。
+          </p>
+          <label class="field">
+            <span class="field__label" data-i18n="settings.token">访问令牌</span>
+            <input type="password" id="authToken" autocomplete="off" spellcheck="false"
+              data-i18n-attr="placeholder:settings.tokenPlaceholder" required />
+          </label>
+          <p class="set-note" data-i18n="settings.tokenHelp">
+            令牌只需要 gist 这一个权限，无法读取你的代码仓库。
+          </p>
+          <div class="set-actions">
+            <button class="btn btn--primary btn--sm" id="btnSignIn" type="submit"
+              data-i18n="settings.connect">连接</button>
+            <a class="btn btn--ghost btn--sm" id="btnGetToken" href="https://github.com/settings/tokens/new?scopes=gist"
+              target="_blank" rel="noopener" data-i18n="settings.getToken">获取令牌</a>
+          </div>
+          <p class="set-note set-note--err" id="authError" role="alert" hidden></p>
+        </form>
+
+        <!-- Connected -->
+        <div class="auth" id="accountSignedIn" hidden>
+          <p class="set-note"><strong id="accountEmail"></strong></p>
+          <p class="set-note" id="syncState" role="status" aria-live="polite"></p>
+          <div class="set-actions">
+            <button class="btn btn--ghost btn--sm" id="btnSyncNow" type="button"
+              data-i18n="settings.syncNow">立即同步</button>
+            <button class="btn btn--danger btn--sm" id="btnSignOut" type="button"
+              data-i18n="settings.signOut">断开连接</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="set-card">
+        <h2 class="set-card__title" data-i18n="settings.data">你的数据</h2>
+        <p class="set-note" data-i18n="settings.dataNote">文章和生词只保存在本浏览器里。</p>
+        <div class="set-actions">
+          <button class="btn btn--ghost btn--sm" id="btnExport" type="button" data-i18n="settings.export">下载备份</button>
+          <label class="btn btn--ghost btn--sm" for="importFile" data-i18n="settings.restore">恢复备份</label>
+          <input class="visually-hidden" id="importFile" type="file" accept=".json,application/json" />
+          <button class="btn btn--danger btn--sm" id="btnWipe" type="button" data-i18n="settings.wipe">删除全部数据</button>
+        </div>
+        <pre class="set-stats" id="setStats"></pre>
+      </section>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>
