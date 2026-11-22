@@ -1,0 +1,21 @@
+# ---------------------------------------------------------------
+# Deployment target: publish only the built app.
+# `dist/` is produced by `node tools/build-deploy.mjs` and is NOT committed;
+# the GitHub Pages workflow rebuilds it from source on every push.
+# ---------------------------------------------------------------
+
+# Build output
+dist/
+
+# Dev tooling and local state
+node_modules/
+ref/
+data/cache/
+
+# Verification artifacts
+verify/shots/
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*.log

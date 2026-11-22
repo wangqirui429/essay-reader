@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<title>点按诊断 / Tap diagnostics</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0;
+    padding: 12px;
+    font: 15px/1.5 -apple-system, "Segoe UI", system-ui, sans-serif;
+    background: #f6f1e6;
+    color: #2b2b2b;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1b1a18; color: #e8e3d8; }
+  }
+  h1 { font-size: 1rem; margin: 0 0 .2rem; }
+  p.hint { font-size: .8rem; opacity: .75; margin: 0 0 .7rem; }
+  #panel {
+    border: 2px dashed #b5651d;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    /* A real button of comparable size to the ✕, so the geometry matches. */
+  }
+  .row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+  #btn {
+    width: 46px; height: 46px;
+    border-radius: 9px;
+    border: 1px solid #b5651d;
+    background: rgba(181,101,29,.12);
+    color: #b5651d;
+    font-size: 1rem;
+    touch-action: manipulation;
+  }
+  #target {
+    flex: 1;
+    height: 46px;
+    border-radius: 9px;
+    border: 1px solid rgba(0,0,0,.12);
+    background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .85rem;
+  }
+  #log {
+    font: 11.5px/1.45 ui-monospace, Menlo, Consolas, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: rgba(0,0,0,.045);
+    border-radius: 10px;
+    padding: 10px;
+    min-height: 220px;
+    max-height: 55vh;
+    overflow: auto;
+    margin: 0;
+  }
+  button.clear {
+    font: inherit; font-size: .8rem;
+    padding: .35rem .8rem;
+    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,.15);
+    background: transparent;
+    color: inherit;
+  }
+</style>
+</head>
+<body>
+
+<h1>点按诊断 / Tap diagnostics</h1>
+<p class="hint">点下面的方块和 ✕，页面会记录每一次触摸事件。把结果截图发给我即可。</p>
+
+<div id="panel">
+  <div class="row">
+    <button id="btn" type="button">✕</button>
+    <div id="target">点这里 / tap here</div>
+  </div>
+</div>
+
+<div class="row">
+  <button class="clear" id="clear" type="button">清空 / clear</button>
+</div>
+
+<pre id="log"></pre>
+
+<script type="module" src="./debug.js"></script>
+</body>
+</html>
